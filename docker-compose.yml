@@ -1,0 +1,140 @@
+name: vybe
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: vybe
+      POSTGRES_USER: vybe
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-vybe_local}
+    ports: ["127.0.0.1:5433:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vybe"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]
+  api:
+    build: ./apps/api
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/vybe
+      DATABASE_USER: vybe
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-vybe_local}
+      KAFKA_ENABLED: "true"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      TRACING_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel:4318/v1/traces
+      METRICS_TOKEN: vybe_local_metrics_only
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8001
+      SMTP_HOST: mailpit
+      PUBLIC_URL: http://localhost:3000
+      COOKIE_SECURE: "false"
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-vybe_local}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-vybe_local_storage_only}
+      S3_BUCKET: vybe-media
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      mailpit: { condition: service_started }
+      redis: {condition: service_started}
+      kafka: {condition: service_started}
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:8080
+    environment:
+      API_INTERNAL_URL: http://api:8080
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [api]
+  minio:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/minio.Dockerfile
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-vybe_local}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-vybe_local_storage_only}
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+    volumes: ["media_data:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  media-init:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/media-worker.Dockerfile
+    environment: &media-env
+      WORKER_DATABASE_URL: postgresql://vybe:${DATABASE_PASSWORD:-vybe_local}@postgres:5432/vybe
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-vybe_local}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-vybe_local_storage_only}
+      S3_BUCKET: vybe-media
+    command: ["python", "init_bucket.py"]
+    depends_on:
+      minio: {condition: service_healthy}
+  media-worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/media-worker.Dockerfile
+    environment: *media-env
+    depends_on:
+      media-init: {condition: service_completed_successfully}
+      api: {condition: service_started}
+    restart: unless-stopped
+  redis:
+    image: redis:7.4-alpine
+    ports: ["127.0.0.1:6380:6379"]
+  ai-service:
+    build:
+      context: .
+      dockerfile: apps/ai-service/Dockerfile
+    environment:
+      HF_HOME: /home/vybe/.cache/huggingface
+    volumes: ["ai_models:/home/vybe/.cache/huggingface"]
+  kafka:
+    image: apache/kafka:4.1.2
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes: ["kafka_data:/var/lib/kafka/data"]
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes: ["./infrastructure/monitoring/otel.yml:/etc/otelcol/config.yaml:ro"]
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    ports: ["127.0.0.1:9090:9090"]
+    volumes: ["./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro", "prometheus_data:/prometheus"]
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-vybe_local_dashboard}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports: ["127.0.0.1:3001:3000"]
+    volumes:
+      - ./infrastructure/monitoring/grafana:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  postgres_data:
+  media_data:
+  ai_models:
+  kafka_data:
+  prometheus_data:
+  grafana_data:

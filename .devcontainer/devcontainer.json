@@ -1,0 +1,27 @@
+{
+  "name": "VYBE V1 \u2014 full-stack testing",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [
+    3000,
+    8025
+  ],
+  "portsAttributes": {
+    "3000": {
+      "label": "VYBE",
+      "onAutoForward": "notify"
+    },
+    "8025": {
+      "label": "Private test email",
+      "onAutoForward": "silent"
+    }
+  },
+  "otherPortsAttributes": {
+    "onAutoForward": "ignore"
+  },
+  "postCreateCommand": "bash infrastructure/codespaces/start.sh",
+  "postStartCommand": "bash infrastructure/codespaces/resume.sh",
+  "remoteUser": "vscode"
+}

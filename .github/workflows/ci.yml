@@ -1,0 +1,111 @@
+name: VYBE quality gates
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: PostgreSQL integration suite (Testcontainers)
+        working-directory: apps/api
+        run: ./mvnw -B verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-tests
+          path: apps/api/target/surefire-reports
+  web-and-e2e:
+    runs-on: ubuntu-latest
+    env:
+      MEDIA_FIXTURE: /tmp/vybe-fixture.json
+      PUBLIC_URL: http://127.0.0.1:3000
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: vybe
+          POSTGRES_USER: vybe
+          POSTGRES_PASSWORD: vybe_local
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U vybe" --health-interval 5s --health-retries 20
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports: ["1025:1025", "8025:8025"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -r apps/media-worker/requirements.txt
+      - name: Start isolated S3 fixture storage
+        run: |
+          npm install --prefix /tmp/vybe-s3 s3rver@3.7.1
+          mkdir -p /tmp/vybe-s3-data
+          node /tmp/vybe-s3/node_modules/s3rver/bin/s3rver.js -d /tmp/vybe-s3-data -a 127.0.0.1 -p 9000 > /tmp/vybe-s3.log 2>&1 &
+          python apps/media-worker/init_bucket.py
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - name: Build API
+        working-directory: apps/api
+        run: ./mvnw -B -DskipTests package
+      - name: Start API, migrate, and seed explicit test data
+        env:
+          PGPASSWORD: vybe_local
+        run: |
+          java -jar apps/api/target/vybe-api-0.1.0.jar > /tmp/vybe-api.log 2>&1 &
+          for i in $(seq 1 60); do if curl -fsS http://localhost:8080/actuator/health; then break; fi; sleep 2; done
+          curl -fsS http://localhost:8080/actuator/health
+          psql -h localhost -U vybe -d vybe -v ON_ERROR_STOP=1 -f infrastructure/scripts/seed-demo.sql
+      - name: Verify real upload, FFmpeg, HLS and progress
+        run: python infrastructure/scripts/check-media.py
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Browser tests against real API, database and SMTP
+        run: |
+          npm run start --workspace=@vybe/web > /tmp/vybe-web.log 2>&1 &
+          for i in $(seq 1 30); do if curl -fsS http://localhost:3000 > /dev/null; then break; fi; sleep 2; done
+          npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-evidence
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            /tmp/vybe-api.log
+            /tmp/vybe-web.log
+
+  media-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -r apps/media-worker/requirements.txt
+      - run: python -m unittest -v
+        working-directory: apps/media-worker

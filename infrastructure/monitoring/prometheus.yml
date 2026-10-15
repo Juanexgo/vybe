@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: vybe-api
+    metrics_path: /actuator/prometheus
+    authorization:
+      type: Bearer
+      credentials: vybe_local_metrics_only
+    static_configs:
+      - targets: [api:8080]

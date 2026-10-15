@@ -1,0 +1,15 @@
+{
+  "name": "vybe",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@vybe/web",
+    "build": "npm run build --workspace=@vybe/web",
+    "test": "npm run test --workspace=@vybe/web",
+    "typecheck": "npm run typecheck --workspace=@vybe/web",
+    "e2e": "npm run e2e --workspace=@vybe/web"
+  }
+}
