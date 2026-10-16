@@ -84,6 +84,14 @@ public class SecurityConfig {
                         (req, res, ex) -> {
                           res.setStatus(403);
                           res.setContentType("application/problem+json");
+                          if (ex instanceof InvalidCsrfTokenException
+                              || ex instanceof MissingCsrfTokenException) {
+                            res.getWriter()
+                                .write(
+                                    "{\"code\":\"csrf_invalid\",\"detail\":\"Refresh your security"
+                                        + " token and try again.\"}");
+                            return;
+                          }
                           res.getWriter()
                               .write(
                                   "{\"detail\":\"This action is not allowed. Refresh and try"

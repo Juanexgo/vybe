@@ -234,7 +234,8 @@ class PhaseOneIntegrationTest {
             post("/api/auth/register")
                 .contentType("application/json")
                 .content(json("a@example.test")))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("csrf_invalid"));
     mvc.perform(
             post("/api/auth/register")
                 .with(csrf())

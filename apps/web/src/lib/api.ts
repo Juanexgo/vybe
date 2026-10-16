@@ -10,6 +10,7 @@ let csrfToken: string | undefined;
 export async function api<T>(
   path: string,
   options: RequestInit = {},
+  csrfRetried = false,
 ): Promise<T> {
   const method = options.method ?? "GET";
   if (method !== "GET" && !csrfToken) {
@@ -40,7 +41,16 @@ export async function api<T>(
     if (res.status === 403) csrfToken = undefined;
     const problem = (await res.json().catch(() => ({
       detail: "The service is unavailable. Please try again.",
-    }))) as { detail?: string };
+    }))) as { detail?: string; code?: string };
+    // CSRF rejection occurs before the handler, so a single retry cannot duplicate a write.
+    if (
+      res.status === 403 &&
+      problem.code === "csrf_invalid" &&
+      method !== "GET" &&
+      !csrfRetried
+    ) {
+      return api<T>(path, options, true);
+    }
     throw new ApiError(
       res.status,
       problem.detail ?? "The request could not be completed.",

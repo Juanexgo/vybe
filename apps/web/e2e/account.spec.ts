@@ -49,7 +49,9 @@ test("verified account saves a title, switches profiles, and signs out", async (
   ).toBeVisible();
   await page.goto("/");
   await expect(page).toHaveURL(/\/explore$/);
-  await expect(page.getByRole("heading", { name: "Find your next feeling." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Find your next feeling." }),
+  ).toBeVisible();
   await page.goto("/title/spring");
   await page.getByRole("button", { name: "Save to my library" }).click();
   await expect(
@@ -77,7 +79,9 @@ test("verified account saves a title, switches profiles, and signs out", async (
   await page.goto("/account");
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(
-    page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }),
+    page
+      .getByRole("banner")
+      .getByRole("link", { name: "Sign in", exact: true }),
   ).toBeVisible();
   await page.goto("/library");
   await expect(
