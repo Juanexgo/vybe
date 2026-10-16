@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000",
     trace: "retain-on-failure",
+    storageState: process.env.E2E_STORAGE_STATE || undefined,
+    extraHTTPHeaders: process.env.E2E_BASE_URL?.endsWith(".app.github.dev") ? { "X-Tunnel-Skip-AntiPhishing-Page": "true" } : {},
     screenshot: "only-on-failure",
     ...devices["Desktop Chrome"],
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,

@@ -12,11 +12,12 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 @EnableWebSocket
 public class PartySocketConfig implements WebSocketConfigurer {
   private final PartySocket socket;
-  private final String origin;
+  private final String[] origins;
 
-  public PartySocketConfig(PartySocket socket, @Value("${vybe.public-url}") String origin) {
+  public PartySocketConfig(PartySocket socket, @Value("${vybe.public-url}") String origin,
+      @Value("${PARTY_PROXY_ORIGIN:}") String proxyOrigin) {
     this.socket = socket;
-    this.origin = origin;
+    this.origins = proxyOrigin.isBlank() ? new String[] {origin} : new String[] {origin, proxyOrigin};
   }
 
   @Override
@@ -27,7 +28,7 @@ public class PartySocketConfig implements WebSocketConfigurer {
     registry
         .addHandler(socket, "/api/party-socket")
         .addInterceptors(sessions)
-        .setAllowedOrigins(origin);
+        .setAllowedOrigins(origins);
   }
 
   @Bean
