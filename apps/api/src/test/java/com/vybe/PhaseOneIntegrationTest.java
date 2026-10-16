@@ -65,6 +65,75 @@ class PhaseOneIntegrationTest {
   @Autowired MockMvc mvc;
   @Autowired JdbcTemplate db;
   @Autowired IdentityService identity;
+  @Autowired com.vybe.identity.GoogleIdentity google;
+
+  org.springframework.security.oauth2.core.oidc.user.OidcUser googleUser(
+      String subject, String email, boolean verified) {
+    var claims = new java.util.HashMap<String, Object>();
+    claims.put("sub", subject);
+    claims.put("email", email);
+    claims.put("email_verified", verified);
+    claims.put("name", "Google viewer");
+    var token =
+        new org.springframework.security.oauth2.core.oidc.OidcIdToken(
+            "test-token",
+            java.time.Instant.now(),
+            java.time.Instant.now().plusSeconds(300),
+            claims);
+    return new org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser(
+        List.of(
+            new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")),
+        token);
+  }
+
+  @Test
+  void googleIdentityCreatesProfileAndReusesAccount() {
+    var user = googleUser("google-subject", "google@example.test", true);
+    assertEquals(List.of("USER"), google.authenticate(user));
+    assertEquals(List.of("USER"), google.authenticate(user));
+    assertEquals(
+        1,
+        db.queryForObject(
+            "SELECT count(*) FROM users WHERE email='google@example.test'", Integer.class));
+    assertEquals(1, db.queryForObject("SELECT count(*) FROM profiles", Integer.class));
+    assertEquals(1, db.queryForObject("SELECT count(*) FROM watchlists", Integer.class));
+    db.update("UPDATE users SET disabled=true WHERE email='google@example.test'");
+    assertThrows(
+        org.springframework.security.oauth2.core.OAuth2AuthenticationException.class,
+        () -> google.authenticate(user));
+  }
+
+  @Test
+  void googleRejectsUnverifiedAndImplicitAccountLinking() {
+    assertThrows(
+        org.springframework.security.oauth2.core.OAuth2AuthenticationException.class,
+        () -> google.authenticate(googleUser("unverified", "new@example.test", false)));
+    verified("existing@example.test");
+    var failure =
+        assertThrows(
+            org.springframework.security.oauth2.core.OAuth2AuthenticationException.class,
+            () -> google.authenticate(googleUser("collision", "existing@example.test", true)));
+    assertEquals("existing-account", failure.getError().getErrorCode());
+    assertEquals(0, db.queryForObject("SELECT count(*) FROM external_identities", Integer.class));
+  }
+
+  @Test
+  void googleRejectsChangedEmailAndSubjectTakeover() {
+    google.authenticate(googleUser("stable", "first@example.test", true));
+    assertThrows(
+        org.springframework.security.oauth2.core.OAuth2AuthenticationException.class,
+        () -> google.authenticate(googleUser("stable", "changed@example.test", true)));
+    assertThrows(
+        org.springframework.security.oauth2.core.OAuth2AuthenticationException.class,
+        () -> google.authenticate(googleUser("other", "first@example.test", true)));
+  }
+
+  @Test
+  void providersReflectConfiguration() throws Exception {
+    mvc.perform(get("/api/auth/providers"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.google").value(false));
+  }
 
   @BeforeEach
   void reset() throws Exception {

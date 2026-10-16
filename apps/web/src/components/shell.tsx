@@ -23,43 +23,59 @@ export function Shell({ children }: { children: React.ReactNode }) {
     queryFn: () => api<Account>("/auth/me"),
     retry: false,
   });
+  const cinematic = [
+    "/",
+    "/login",
+    "/register",
+    "/forgot",
+    "/reset",
+    "/verify",
+    "/resend",
+  ].includes(path);
   return (
     <>
       <a className="skip" href="#main">
         Skip to content
       </a>
-      <header className="header">
+      <header className={`header ${cinematic ? "cinema-header" : ""}`}>
         <Link href="/" className="brand" aria-label="VYBE home">
           v<span>y</span>be<span className="brand-dot">.</span>
         </Link>
-        <nav aria-label="Main navigation">
-          <Link
-            className={path === "/" || path === "/explore" ? "active" : ""}
-            href="/explore"
-          >
-            <Compass size={15} />
-            Discover
-          </Link>
-          <Link
-            className={path === "/explore/movies" ? "active" : ""}
-            href="/explore/movies"
-          >
-            <Film size={15} />
-            Films
-          </Link>
-          <Link className={path === "/library" ? "active" : ""} href="/library">
-            <Bookmark size={15} />
-            My library
-          </Link>
-        </nav>
+        {!cinematic && (
+          <nav aria-label="Main navigation">
+            <Link
+              className={path === "/" || path === "/explore" ? "active" : ""}
+              href="/explore"
+            >
+              <Compass size={15} />
+              Discover
+            </Link>
+            <Link
+              className={path === "/explore/movies" ? "active" : ""}
+              href="/explore/movies"
+            >
+              <Film size={15} />
+              Films
+            </Link>
+            <Link
+              className={path === "/library" ? "active" : ""}
+              href="/library"
+            >
+              <Bookmark size={15} />
+              My library
+            </Link>
+          </nav>
+        )}
         <div className="header-actions">
-          <Link
-            className="icon-button"
-            href="/discover"
-            aria-label="Search catalog"
-          >
-            <Search size={20} />
-          </Link>
+          {!cinematic && (
+            <Link
+              className="icon-button"
+              href="/discover"
+              aria-label="Search catalog"
+            >
+              <Search size={20} />
+            </Link>
+          )}
           {account ? (
             <Link
               href="/profiles"

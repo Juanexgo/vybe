@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("browse, filter, open a title and navigate authentication", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/explore");
   await expect(
     page.getByRole("heading", { name: "Find your next feeling." }),
   ).toBeVisible();
@@ -49,7 +49,7 @@ test("registration validates password before submitting", async ({ page }) => {
 });
 test("mobile catalog does not overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/explore");
   await expect(
     page.getByRole("link", { name: "Explore the story" }),
   ).toBeVisible();

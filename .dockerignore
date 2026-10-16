@@ -5,3 +5,6 @@ work
 .git
 .env
 **/*.log
+
+.env*
+**/.env*

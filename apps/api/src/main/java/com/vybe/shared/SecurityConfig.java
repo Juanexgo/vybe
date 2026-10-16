@@ -12,10 +12,16 @@ public class SecurityConfig {
   @Bean
   org.springframework.session.web.http.DefaultCookieSerializer sessionCookies(
       @org.springframework.beans.factory.annotation.Value("${COOKIE_DOMAIN:}") String domain,
-      @org.springframework.beans.factory.annotation.Value("${COOKIE_SECURE:false}") boolean secure) {
-    var cookie=new org.springframework.session.web.http.DefaultCookieSerializer();
-    cookie.setCookieName("VYBE_SESSION");cookie.setCookiePath("/");cookie.setUseHttpOnlyCookie(true);cookie.setUseSecureCookie(secure);cookie.setSameSite("Lax");
-    if(!domain.isBlank())cookie.setDomainName(domain);return cookie;
+      @org.springframework.beans.factory.annotation.Value("${COOKIE_SECURE:false}")
+          boolean secure) {
+    var cookie = new org.springframework.session.web.http.DefaultCookieSerializer();
+    cookie.setCookieName("VYBE_SESSION");
+    cookie.setCookiePath("/");
+    cookie.setUseHttpOnlyCookie(true);
+    cookie.setUseSecureCookie(secure);
+    cookie.setSameSite("Lax");
+    if (!domain.isBlank()) cookie.setDomainName(domain);
+    return cookie;
   }
 
   @Bean
@@ -26,6 +32,7 @@ public class SecurityConfig {
   @Bean
   SecurityFilterChain security(
       HttpSecurity http,
+      org.springframework.beans.factory.ObjectProvider<com.vybe.identity.GoogleOAuth> google,
       @org.springframework.beans.factory.annotation.Value("${vybe.metrics-token}")
           String metricsToken)
       throws Exception {
@@ -40,6 +47,9 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(
                         "/api/auth/csrf",
+                        "/api/auth/providers",
+                        "/api/oauth2/authorization/**",
+                        "/api/login/oauth2/code/**",
                         "/api/auth/register",
                         "/api/auth/login",
                         "/api/auth/verify",
@@ -85,6 +95,7 @@ public class SecurityConfig {
     http.addFilterBefore(
         new MetricsAuthentication(metricsToken),
         org.springframework.security.web.access.intercept.AuthorizationFilter.class);
+    if (google.getIfAvailable() != null) google.getObject().configure(http, csrf);
     return http.build();
   }
 }

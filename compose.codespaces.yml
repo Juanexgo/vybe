@@ -1,6 +1,9 @@
 # Development/testing override. Only the web port may be made public.
 services:
   api:
+    env_file:
+      - path: .env.oauth
+        required: false
     environment:
       PUBLIC_URL: ${PUBLIC_URL:?Run infrastructure/codespaces/start.sh}
       COOKIE_SECURE: "true"
