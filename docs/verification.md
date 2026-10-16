@@ -16,3 +16,7 @@ The player screenshot shows an original generated test pattern, not footage from
 
 ## Remaining deployment verification
 Docker daemon was unavailable on this workstation; full Compose images/monitoring, remote CI, ARM builds, HTTPS/WSS on a public host, real SMTP delivery, backups/restoration and production capacity remain unverified. Local email tests use Mailpit. No public deployment or production readiness is claimed. Vercel project inspection succeeded but team access returned 403; no Vercel deployment was created. User requires full functionality and zero hosting spend, and will create an Oracle Cloud account before provisioning an eligible free server.
+
+## Hosted verification update
+
+Full Docker stack deployed in Codespaces. Public HTTPS browser suite: 11/11 passed in 1.4 minutes, including HLS/audio/subtitles and two-session WebSocket parties. Real remote upload/transcode/progress/private-media checks passed; AI ready; outbox drained. This supersedes the earlier no-public-deployment status above. See deployment/codespaces-release.md. ARM builds, production SMTP, backup restoration and production capacity remain unverified.
