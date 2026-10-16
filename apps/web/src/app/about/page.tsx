@@ -17,15 +17,17 @@ export default function About() {
       <h2>What you can do today</h2>
       <p>
         Explore the catalog, filter films, create a verified account, manage
-        viewing profiles and save titles to your library. Streaming, watch
-        parties and personalized recommendations are planned for later releases.
+        viewing profiles and save titles to your library. Play available media,
+        resume your progress, discover recommendations with explanations, build
+        shared watchlists, and join synchronized watch parties.
       </p>
       <h2>Your account</h2>
       <p>
         We store your email, password hash, viewing profiles and saved titles.
-        Authentication uses an HTTP-only session cookie. Password reset
-        invalidates existing sessions. This local portfolio build is not a
-        public commercial service.
+        We also store playback progress, preferences, and shared-list membership
+        to support your viewing experience. Authentication uses an HTTP-only
+        session cookie. Password reset invalidates existing sessions. This is a
+        development preview, not a public commercial service.
       </p>
     </article>
   );

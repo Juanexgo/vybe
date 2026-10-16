@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { MemberHub } from "./member-hub";
 import Image from "next/image";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -173,6 +174,7 @@ export function CatalogView({
           </div>
         </section>
       )}
+      {!search && !movies && <MemberHub />}
       <section className="catalog-section" aria-label="Browse catalog">
         <div className="section-heading">
           <div>

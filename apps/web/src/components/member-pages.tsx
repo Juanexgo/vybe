@@ -209,26 +209,71 @@ export function MemberPage({
           {remove.error && <ErrorBox error={remove.error} />}
         </>
       ) : (
-        <div className="account-panel">
-          <label>Email address</label>
-          <p>{account.data?.email}</p>
-          <Link className="text-link" href="/forgot">
-            Reset your password
-            <ArrowRight size={16} />
-          </Link>
-          <Link className="text-link" href="/profiles">
-            Manage viewing profiles
-            <ArrowRight size={16} />
-          </Link>
-          <button
-            className="button outline"
-            disabled={logout.isPending}
-            onClick={() => logout.mutate()}
-          >
-            <LogOut size={17} />
-            Sign out
-          </button>
-          {logout.error && <ErrorBox error={logout.error} />}
+        <div className="account-dashboard">
+          <div className="account-panel account-identity">
+            <span className="eyebrow">ACCOUNT & SECURITY</span>
+            <h2>A space that belongs to you.</h2>
+            <label>Email address</label>
+            <p>{account.data?.email}</p>
+            <Link className="text-link" href="/forgot">
+              Reset your password
+              <ArrowRight size={16} />
+            </Link>
+            <Link className="text-link" href="/profiles">
+              Manage viewing profiles
+              <ArrowRight size={16} />
+            </Link>
+            <button
+              className="button outline"
+              disabled={logout.isPending}
+              onClick={() => logout.mutate()}
+            >
+              <LogOut size={17} />
+              Sign out
+            </button>
+            {logout.error && <ErrorBox error={logout.error} />}
+          </div>
+          <div className="account-destinations">
+            <Link href="/for-you">
+              <span className="eyebrow">YOUR TASTE</span>
+              <h2>Fine-tune your discoveries.</h2>
+              <p>
+                Adjust your preferences and see why a story was recommended.
+              </p>
+              <span className="text-link">
+                Recommendations & preferences <ArrowRight size={16} />
+              </span>
+            </Link>
+            <Link href="/history">
+              <span className="eyebrow">YOUR ACTIVITY</span>
+              <h2>Every story, in your hands.</h2>
+              <p>Review what you watched and manage saved playback history.</p>
+              <span className="text-link">
+                Watch history <ArrowRight size={16} />
+              </span>
+            </Link>
+            <Link href="/lists">
+              <span className="eyebrow">YOUR PEOPLE</span>
+              <h2>A good list is worth sharing.</h2>
+              <p>
+                Manage watchlists and invite collaborators to help choose what
+                is next.
+              </p>
+              <span className="text-link">
+                Shared watchlists <ArrowRight size={16} />
+              </span>
+            </Link>
+            <Link href="/help">
+              <span className="eyebrow">NEED A HAND?</span>
+              <h2>Get more out of VYBE.</h2>
+              <p>
+                A guide to profiles, discovery, playback, and watching together.
+              </p>
+              <span className="text-link">
+                Help & getting started <ArrowRight size={16} />
+              </span>
+            </Link>
+          </div>
         </div>
       )}
     </div>

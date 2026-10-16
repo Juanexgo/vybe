@@ -1,13 +1,15 @@
 "use client";
+import { ProfileMenu } from "./profile-menu";
+import { QuickSearch } from "./quick-search";
 import { useEffect } from "react";
 import { useProfile } from "@/lib/store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Search,
   ArrowUpRight,
-  CircleUserRound,
+  Sparkles,
+  Users,
   Bookmark,
   Compass,
   Film,
@@ -42,7 +44,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           v<span>y</span>be<span className="brand-dot">.</span>
         </Link>
         {!cinematic && (
-          <nav aria-label="Main navigation">
+          <nav className="primary-navigation" aria-label="Main navigation">
             <Link
               className={path === "/" || path === "/explore" ? "active" : ""}
               href="/explore"
@@ -64,26 +66,30 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Bookmark size={15} />
               My library
             </Link>
+            {account && (
+              <>
+                <Link
+                  className={path === "/for-you" ? "active" : ""}
+                  href="/for-you"
+                >
+                  <Sparkles size={15} />
+                  For you
+                </Link>
+                <Link
+                  className={path === "/parties" ? "active" : ""}
+                  href="/parties"
+                >
+                  <Users size={15} />
+                  Watch together
+                </Link>
+              </>
+            )}
           </nav>
         )}
         <div className="header-actions">
-          {!cinematic && (
-            <Link
-              className="icon-button"
-              href="/discover"
-              aria-label="Search catalog"
-            >
-              <Search size={20} />
-            </Link>
-          )}
+          {!cinematic && <QuickSearch key={`search-${path}`} />}
           {account ? (
-            <Link
-              href="/profiles"
-              className="avatar"
-              aria-label="Manage profiles"
-            >
-              <CircleUserRound size={24} />
-            </Link>
+            <ProfileMenu key={`profile-${path}`} account={account} />
           ) : (
             <Link className="button small outline" href="/login">
               Sign in <ArrowUpRight size={14} />
@@ -92,6 +98,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main id="main">{children}</main>
+      {!cinematic && (
+        <nav className="mobile-dock" aria-label="Mobile navigation">
+          {[
+            { href: "/explore", label: "Discover", icon: Compass },
+            { href: "/library", label: "My library", icon: Bookmark },
+            { href: "/for-you", label: "For you", icon: Sparkles },
+            { href: "/parties", label: "Together", icon: Users },
+          ].map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={path === href ? "page" : undefined}
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
       <footer>
         <Link href="/" className="brand">
           vybe<span className="brand-dot">.</span>
