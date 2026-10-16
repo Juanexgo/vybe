@@ -36,6 +36,9 @@ public class SecurityConfig {
       @org.springframework.beans.factory.annotation.Value("${vybe.metrics-token}")
           String metricsToken)
       throws Exception {
+    // API clients and OAuth use explicit destinations. Saving anonymous requests creates
+    // competing session cookies while the browser is establishing its CSRF token.
+    http.requestCache(cache -> cache.disable());
     var csrf = CookieCsrfTokenRepository.withHttpOnlyFalse();
     http.csrf(
             c ->

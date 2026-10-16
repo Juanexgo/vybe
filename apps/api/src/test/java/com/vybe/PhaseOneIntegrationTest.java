@@ -166,6 +166,13 @@ class PhaseOneIntegrationTest {
   }
 
   @Test
+  void anonymousAccountProbeDoesNotCreateSession() throws Exception {
+    mvc.perform(get("/api/auth/me"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(cookie().doesNotExist("VYBE_SESSION"));
+  }
+
+  @Test
   void registrationVerificationSessionAndReset() throws Exception {
     mvc.perform(
             post("/api/auth/register")
